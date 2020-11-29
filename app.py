@@ -19,14 +19,14 @@ class Comment(db.Model):
 def comments_handler():
     resp = None
     if (request.method == 'GET'):
-        resp = []
+        comments = []
         for comment in Comment.query.all():
-            resp.append({
+            comments.append({
                 'User': comment.username,
                 'Body': comment.body,
                 'Published': int(comment.published.timestamp())
             })
-        resp = jsonify(resp)
+        resp = jsonify(comments), 200
     elif (request.method == 'POST'):
         if (not request.values.get('username', '') or not request.values.get('body', '')):
             resp = jsonify({'msg': 'Bad Request'}), 400
@@ -43,7 +43,7 @@ def comments_handler():
                 'Published': int(new_comment.published.timestamp())
             }), 201
             
-    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp[0].headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 if (__name__ == '__main__'):
