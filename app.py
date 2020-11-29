@@ -20,7 +20,7 @@ def comments_handler():
     resp = None
     if (request.method == 'GET'):
         comments = []
-        for comment in Comment.query.all():
+        for comment in Comment.query.order_by(Comment.published.desc()):
             comments.append({
                 'User': comment.username,
                 'Body': comment.body,
@@ -37,11 +37,14 @@ def comments_handler():
             )
             db.session.add(new_comment)
             db.session.commit()
-            resp = jsonify({
-                'User': new_comment.username,
-                'Body': new_comment.body,
-                'Published': int(new_comment.published.timestamp())
-            }), 201
+            comments = []
+            for comment in Comment.query.order_by(Comment.published.desc()):
+                comments.append({
+                    'User': comment.username,
+                    'Body': comment.body,
+                    'Published': int(comment.published.timestamp())
+                })
+            resp = jsonify(comments), 201
             
     resp[0].headers['Access-Control-Allow-Origin'] = '*'
     return resp
