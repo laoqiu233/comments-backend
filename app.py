@@ -9,11 +9,21 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://dtvnfccjoubpyk:f94331ab9c89a
 print('Database: ', app.config['SQLALCHEMY_DATABASE_URI'])
 db = SQLAlchemy(app)
 
+password = '********'
+
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     body = db.Column(db.Text, nullable=False)
     published = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    ip = db.Column(db.String(15), nullable=False)
+
+@app.route('/api/testpw', methods=['POST'])
+def testpw():
+    if (request.form.get('password', '') == password):
+        return jsonify({'msg': 'ok'})
+    else:
+        return jsonify({'msg': 'wrong password'}), 400
 
 @app.route('/api/comments', methods=['GET', 'POST'])
 def comments_handler():
@@ -22,32 +32,49 @@ def comments_handler():
         comments = []
         for comment in Comment.query.order_by(Comment.published.desc()):
             comments.append({
+                'Id': comment.id,
                 'User': comment.username,
                 'Body': comment.body,
-                'Published': int(comment.published.timestamp())
+                'Published': int(comment.published.timestamp()),
             })
-        resp = jsonify(comments), 200
+            if (request.values.get('password', '') == password): comments[-1]['Ip'] = comment.ip
+        return jsonify(comments), 200
     elif (request.method == 'POST'):
-        if (not request.values.get('username', '') or not request.values.get('body', '')):
-            resp = jsonify({'msg': 'Bad Request'}), 400
+        if (not request.form.get('username', '') or not request.form.get('body', '')):
+            return jsonify({'msg': 'Bad Request'}), 400
         else:
             new_comment = Comment(
                 username=request.values['username'], 
-                body=request.values['body']
+                body=request.values['body'],
+                ip=request.remote_addr
             )
             db.session.add(new_comment)
             db.session.commit()
-            comments = []
-            for comment in Comment.query.order_by(Comment.published.desc()):
-                comments.append({
-                    'User': comment.username,
-                    'Body': comment.body,
-                    'Published': int(comment.published.timestamp())
-                })
-            resp = jsonify(comments), 201
-            
-    resp[0].headers['Access-Control-Allow-Origin'] = '*'
-    return resp
+            return jsonify({
+                    'Id': new_comment.id,
+                    'User': new_comment.username,
+                    'Body': new_comment.body,
+                    'Published': int(new_comment.published.timestamp())
+            }), 201
+
+@app.route('/api/comments/<int:comment_id>', methods=['GET', 'DELETE'])
+def comment_view(comment_id):
+    comment = Comment.query.filter_by(id=comment_id).get_or_404()
+
+    if (request.method == 'GET'):
+        formatted_comment = {
+            'Id': new_comment.id,
+            'User': new_comment.username,
+            'Body': new_comment.body,
+            'Published': int(new_comment.published.timestamp()),
+        }
+        if (request.values.get('password', '') == password): formatted_comment['Ip'] = comment.ip
+        return jsonify(formatted_comment)
+
+@app.after_request
+def apply_cors(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 if (__name__ == '__main__'):
     db.create_all()
