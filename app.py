@@ -59,19 +59,20 @@ def comments_handler():
 
 @app.route('/api/comments/<int:comment_id>', methods=['GET', 'DELETE'])
 def comment_view(comment_id):
-    comment = Comment.query.filter_by(id=comment_id).get_or_404()
+    comment = Comment.query.filter_by(id=comment_id).first_or_404()
 
     if (request.method == 'GET'):
         formatted_comment = {
-            'Id': new_comment.id,
-            'User': new_comment.username,
-            'Body': new_comment.body,
-            'Published': int(new_comment.published.timestamp()),
+            'Id': comment.id,
+            'User': comment.username,
+            'Body': comment.body,
+            'Published': int(comment.published.timestamp()),
         }
         if (request.values.get('password', '') == password): formatted_comment['Ip'] = comment.ip
         return jsonify(formatted_comment)
     elif (request.method == 'DELETE'):
-        db.session.remove(comment)
+        if (request.values.get('password', '') != password): return '', 403
+        db.session.delete(comment)
         db.session.commit()
         return {'msg': 'deleted'}, 200
 
