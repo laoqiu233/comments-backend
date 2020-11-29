@@ -78,6 +78,7 @@ def comment_view(comment_id):
 @app.after_request
 def apply_cors(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = '*'
     return response
 
 if (__name__ == '__main__'):
