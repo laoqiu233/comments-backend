@@ -70,6 +70,10 @@ def comment_view(comment_id):
         }
         if (request.values.get('password', '') == password): formatted_comment['Ip'] = comment.ip
         return jsonify(formatted_comment)
+    elif (request.method == 'DELETE'):
+        db.session.remove(comment)
+        db.session.commit()
+        return {'msg': 'deleted'}, 200
 
 @app.after_request
 def apply_cors(response):
