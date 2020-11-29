@@ -4,7 +4,8 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///{}'.format(os.path.join(os.getcwd(), 'data.db')))
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///{}'.format(os.path.join(os.getcwd(), 'data.db')))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://dtvnfccjoubpyk:f94331ab9c89aad2079dec3b11e66bc55973fa38016fadc79facf64a3cc7d73c@ec2-46-137-124-19.eu-west-1.compute.amazonaws.com:5432/d8vm6c7jd8vakk'
 print('Database: ', app.config['SQLALCHEMY_DATABASE_URI'])
 db = SQLAlchemy(app)
 
@@ -16,6 +17,7 @@ class Comment(db.Model):
 
 @app.route('/api/comments', methods=['GET', 'POST'])
 def comments_handler():
+    resp = None
     if (request.method == 'GET'):
         resp = []
         for comment in Comment.query.all():
@@ -24,10 +26,10 @@ def comments_handler():
                 'Body': comment.body,
                 'Published': int(comment.published.timestamp())
             })
-        return jsonify(resp)
+        resp = jsonify(resp)
     elif (request.method == 'POST'):
         if (not request.values.get('username', '') or not request.values.get('body', '')):
-            return jsonify({'msg': 'Bad Request'}), 400
+            resp = jsonify({'msg': 'Bad Request'}), 400
         else:
             new_comment = Comment(
                 username=request.values['username'], 
@@ -35,11 +37,14 @@ def comments_handler():
             )
             db.session.add(new_comment)
             db.session.commit()
-            return jsonify({
+            resp = jsonify({
                 'User': new_comment.username,
                 'Body': new_comment.body,
                 'Published': int(new_comment.published.timestamp())
             }), 201
+            
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
 
 if (__name__ == '__main__'):
     db.create_all()
